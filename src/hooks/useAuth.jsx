@@ -7,13 +7,34 @@ export const AuthProvider = ({ children }) => {
     const [token, setToken] = useState(localStorage.getItem("token"));
     const [loading, setLoading] = useState(true);
 
-    useEffect(() => {
-        // If there's a token, consider the user "logged in" for now
-        // You could also fetch user profile here from /api/auth/me
-        const savedToken = localStorage.getItem("token");
-        if (savedToken) setToken(savedToken);
-        setLoading(false);
-    }, []);
+// src/hooks/useAuth.js
+
+useEffect(() => {
+  const checkAuth = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      if (token) {
+        // Try to get user data from backend
+        const res = await fetch("https://your-backend.onrender.com/api/auth/me", {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setUser(data);
+        } else {
+          localStorage.removeItem("token"); // Token expired
+        }
+      }
+    } catch (err) {
+      console.error("Auth Check Failed:", err);
+    } finally {
+      // It must run even if there is an error or no token
+      setAuthReady(true); 
+    }
+  };
+
+  checkAuth();
+}, []);
 
     const loginWithEmail = async (email, password) => {
         const response = await fetch("http://localhost:5000/api/auth/login", {

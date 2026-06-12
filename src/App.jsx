@@ -10,7 +10,7 @@ import Footer from "./components/Footer";
 import LoginModal from "./components/LoginModal";
 import Dashboard from "./pages/Dashboard";
 import StaffDashboard from "./pages/StaffDashboard"; // ✅ Added
-import IServeForm from "./components/iserveform";
+import IServeForm from "./components/IServeForm";
 
 export default function App() {
   const { user, authReady } = useAuth();

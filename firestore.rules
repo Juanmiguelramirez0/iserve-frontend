@@ -1,0 +1,117 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // 0. Global Safety Net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Phase 3: Primitives
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isVerified() {
+      return isSignedIn() && request.auth.token.email_verified == true;
+    }
+
+    function isAdmin() {
+      return isSignedIn() && exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    // Pillar 2: Validation Blueprints
+    
+    function isValidUser(data) {
+      return data.keys().hasAll(['userId', 'email', 'createdAt', 'updatedAt']) 
+        && data.keys().size() <= 7
+        && data.userId == request.auth.uid
+        && data.email is string && data.email.size() <= 256
+        && (data.displayName == null || (data.displayName is string && data.displayName.size() <= 100))
+        && (data.photoURL == null || (data.photoURL is string && data.photoURL.size() <= 500))
+        && (data.role == null || data.role in ['user', 'admin'])
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidTicket(data) {
+      return data.keys().hasAll(['subject', 'status', 'priority', 'userId', 'createdAt', 'updatedAt'])
+        && data.keys().size() <= 10
+        && data.userId == request.auth.uid
+        && data.subject is string && data.subject.size() <= 200
+        && data.status in ['open', 'pending', 'closed']
+        && data.priority in ['low', 'medium', 'high']
+        && (data.category == null || data.category is string)
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    // Phase 4: Match Blocks
+    
+    match /users/{userId} {
+      allow get: if isOwner(userId) || isAdmin();
+      allow list: if isAdmin(); // Only admins can list all users
+      
+      allow create: if isVerified() 
+        && isValidId(userId) 
+        && userId == request.auth.uid
+        && isValidUser(incoming())
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time
+        && (incoming().role == 'user'); // Users cannot self-assign admin
+
+      allow update: if isOwner(userId)
+        && isValidUser(incoming())
+        && incoming().updatedAt == request.time
+        && incoming().createdAt == existing().createdAt
+        && incoming().userId == existing().userId
+        && incoming().diff(existing()).affectedKeys().hasOnly(['displayName', 'photoURL', 'updatedAt']);
+    }
+
+    match /tickets/{ticketId} {
+      allow get: if isVerified() && (isOwner(existing().userId) || isAdmin());
+      allow list: if isVerified() && (resource.data.userId == request.auth.uid || isAdmin());
+
+      allow create: if isVerified()
+        && isValidId(ticketId)
+        && isValidTicket(incoming())
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time;
+
+      allow update: if isVerified()
+        && (
+          // Action: Update details (Owner)
+          (isOwner(existing().userId) && incoming().diff(existing()).affectedKeys().hasOnly(['subject', 'description', 'priority', 'status', 'updatedAt']) && isValidTicket(incoming())) ||
+          // Action: Close/Update (Admin)
+          (isAdmin() && incoming().diff(existing()).affectedKeys().hasOnly(['status', 'updatedAt']) && isValidTicket(incoming()))
+        )
+        && incoming().updatedAt == request.time
+        && incoming().createdAt == existing().createdAt
+        && incoming().userId == existing().userId;
+        
+      allow delete: if isAdmin();
+    }
+
+    match /announcements/{announcementId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+  }
+}

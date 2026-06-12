@@ -1,0 +1,63 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User profile information.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "description": "The unique ID of the user (from Firebase Auth)." },
+        "displayName": { "type": "string", "description": "The user's display name." },
+        "email": { "type": "string", "format": "email", "description": "The user's email address." },
+        "photoURL": { "type": "string", "description": "The user's profile picture URL." },
+        "role": { "type": "string", "enum": ["user", "admin"], "description": "The user's role in the system." },
+        "createdAt": { "type": "string", "format": "date-time", "description": "When the user profile was created." },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "When the user profile was last updated." }
+      },
+      "required": ["userId", "email", "createdAt", "updatedAt"]
+    },
+    "Ticket": {
+      "title": "Ticket",
+      "description": "A support ticket submitted by a user.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "The unique ID of the ticket." },
+        "subject": { "type": "string", "description": "The subject of the ticket." },
+        "description": { "type": "string", "description": "Detailed description of the issue." },
+        "status": { "type": "string", "enum": ["open", "pending", "closed"], "description": "Current status of the ticket." },
+        "priority": { "type": "string", "enum": ["low", "medium", "high"], "description": "Priority level." },
+        "userId": { "type": "string", "description": "ID of the user who created the ticket." },
+        "category": { "type": "string", "description": "Category of the issue (e.g., Network, Software)." },
+        "createdAt": { "type": "string", "format": "date-time", "description": "When the ticket was created." },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "When the ticket was last updated." }
+      },
+      "required": ["subject", "status", "priority", "userId", "createdAt", "updatedAt"]
+    },
+    "Announcement": {
+      "title": "Announcement",
+      "description": "System-wide announcement from MIS team.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "content": { "type": "string" },
+        "type": { "type": "string", "enum": ["maintenance", "update", "alert"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["title", "content", "type", "createdAt"]
+    }
+  },
+  "firestore": {
+    "users": {
+      "schema": "User",
+      "description": "Collection of user profiles."
+    },
+    "tickets": {
+      "schema": "Ticket",
+      "description": "Collection of support tickets."
+    },
+    "announcements": {
+      "schema": "Announcement",
+      "description": "System-wide announcements."
+    }
+  }
+}

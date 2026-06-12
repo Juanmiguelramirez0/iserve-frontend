@@ -9,7 +9,6 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     const token = localStorage.getItem("token");
     if (token) {
-      // Just for now, set a dummy user so the dashboard opens
       setUser({ loggedIn: true, role: localStorage.getItem("role") || 'student' });
     }
     setAuthReady(true);

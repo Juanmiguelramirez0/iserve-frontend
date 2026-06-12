@@ -14,8 +14,6 @@ import { useAuth } from "../hooks/useAuth";
 
 export default function LoginModal({ isOpen, onClose }) {
   const { login, loginWithEmail, registerWithEmail } = useAuth();
-  const { loginWithEmail, registerWithEmail } = useAuth();
-  const [isRegister, setIsRegister] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
